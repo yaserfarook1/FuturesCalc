@@ -1,0 +1,676 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Futures Calculator</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0d0f14;
+    --surface: #13161e;
+    --surface2: #1a1e2a;
+    --surface3: #222736;
+    --border: #2a2f3e;
+    --accent: #00e5a0;
+    --accent2: #00b8d9;
+    --danger: #ff4d6d;
+    --warn: #ffb830;
+    --text: #e8ecf5;
+    --muted: #6b7494;
+    --muted2: #8b91ab;
+    --mono: 'DM Mono', monospace;
+    --sans: 'Syne', sans-serif;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    min-height: 100vh;
+    background-image: radial-gradient(ellipse at 20% 0%, rgba(0,229,160,0.04) 0%, transparent 60%),
+                      radial-gradient(ellipse at 80% 100%, rgba(0,184,217,0.04) 0%, transparent 60%);
+  }
+
+  /* HEADER */
+  header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 18px 24px;
+    border-bottom: 1px solid var(--border);
+    background: rgba(13,15,20,0.9);
+    backdrop-filter: blur(12px);
+    position: sticky; top: 0; z-index: 100;
+  }
+  .logo {
+    display: flex; align-items: center; gap: 10px;
+    font-size: 1.15rem; font-weight: 800; letter-spacing: -0.5px;
+  }
+  .logo-icon {
+    width: 34px; height: 34px;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 16px;
+  }
+  .session-badge {
+    display: flex; align-items: center; gap: 16px;
+    font-family: var(--mono); font-size: 0.75rem; color: var(--muted2);
+  }
+  .session-dot {
+    display: inline-block; width: 7px; height: 7px;
+    border-radius: 50%; margin-right: 4px;
+  }
+  .dot-asian { background: var(--accent); box-shadow: 0 0 6px var(--accent); }
+  .dot-london { background: var(--muted); }
+  .dot-ny { background: var(--muted); }
+  #live-time { color: var(--text); font-weight: 500; }
+
+  /* TABS */
+  .tabs {
+    display: flex; gap: 0;
+    border-bottom: 1px solid var(--border);
+    padding: 0 24px;
+    background: var(--surface);
+  }
+  .tab {
+    padding: 14px 22px; font-family: var(--sans);
+    font-size: 0.85rem; font-weight: 600;
+    color: var(--muted); cursor: pointer;
+    border-bottom: 2px solid transparent;
+    transition: all 0.2s; letter-spacing: 0.3px;
+    background: none; border-top: none; border-left: none; border-right: none;
+  }
+  .tab.active { color: var(--text); border-bottom-color: var(--accent); }
+  .tab:hover:not(.active) { color: var(--muted2); }
+
+  /* MAIN */
+  main { max-width: 680px; margin: 0 auto; padding: 20px 16px 60px; }
+
+  /* PANEL */
+  .panel { display: none; }
+  .panel.active { display: block; }
+
+  /* SECTION CARD */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 18px;
+    margin-bottom: 14px;
+  }
+
+  /* CONTRACT + ACCOUNT ROW */
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .field-label {
+    font-size: 0.72rem; font-weight: 700; color: var(--muted);
+    letter-spacing: 0.8px; text-transform: uppercase; margin-bottom: 6px;
+  }
+  select, input[type="number"] {
+    width: 100%; background: var(--surface2);
+    border: 1px solid var(--border); border-radius: 9px;
+    color: var(--text); font-family: var(--mono); font-size: 1rem;
+    padding: 11px 14px; outline: none;
+    transition: border-color 0.2s;
+    -webkit-appearance: none;
+  }
+  select { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%236b7494' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+    background-repeat: no-repeat; background-position: right 12px center; cursor: pointer; }
+  select:focus, input[type="number"]:focus { border-color: var(--accent); }
+  .input-wrap { position: relative; }
+  .input-prefix {
+    position: absolute; left: 12px; top: 50%; transform: translateY(-50%);
+    color: var(--muted); font-family: var(--mono); font-size: 0.9rem;
+    pointer-events: none;
+  }
+  .input-wrap input { padding-left: 24px; }
+  .input-suffix {
+    position: absolute; right: 12px; top: 50%; transform: translateY(-50%);
+    color: var(--muted); font-family: var(--mono); font-size: 0.8rem;
+    pointer-events: none;
+  }
+  input::-webkit-inner-spin-button, input::-webkit-outer-spin-button { -webkit-appearance: none; }
+
+  /* QUICK BUTTONS */
+  .quick-btns { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+  .qbtn {
+    padding: 5px 12px; background: var(--surface3);
+    border: 1px solid var(--border); border-radius: 6px;
+    color: var(--muted2); font-family: var(--mono); font-size: 0.75rem;
+    cursor: pointer; transition: all 0.15s;
+  }
+  .qbtn:hover, .qbtn.selected {
+    background: rgba(0,229,160,0.12); border-color: var(--accent);
+    color: var(--accent);
+  }
+
+  /* STOP LOSS + RISK */
+  .sl-risk-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+  /* RESULTS GRID */
+  .results-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px; }
+  .result-card {
+    background: var(--surface2);
+    border-radius: 10px; padding: 14px 16px;
+    border-left: 3px solid transparent;
+    position: relative; overflow: hidden;
+  }
+  .result-card.black-border { border-left-color: #555; }
+  .result-card.red-border { border-left-color: var(--danger); }
+  .result-card.blue-border { border-left-color: var(--accent2); }
+  .result-card.green-bg {
+    background: rgba(0,229,160,0.08);
+    border: 1px solid rgba(0,229,160,0.2);
+    border-left: 3px solid var(--accent);
+  }
+  .result-label { font-size: 0.7rem; color: var(--muted2); font-weight: 600; letter-spacing: 0.5px; text-transform: uppercase; }
+  .result-value { font-family: var(--mono); font-size: 1.4rem; font-weight: 500; margin-top: 4px; }
+  .result-sub { font-size: 0.72rem; color: var(--muted); font-family: var(--mono); margin-top: 2px; }
+  .result-card .risk-level-text { font-size: 1.35rem; font-weight: 700; color: var(--accent); }
+  .buying-power-row {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 10px 0 0; border-top: 1px solid var(--border); margin-top: 10px;
+    font-size: 0.78rem; color: var(--muted2);
+  }
+  .buying-power-row span:last-child { font-family: var(--mono); color: var(--text); }
+
+  /* PROFIT TARGETS */
+  .section-title {
+    display: flex; align-items: center; gap: 8px;
+    font-size: 0.85rem; font-weight: 700; margin-bottom: 12px;
+    color: var(--text); letter-spacing: 0.2px;
+  }
+  .section-title .icon { color: var(--accent); font-size: 1rem; }
+  .targets-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+  .target-card {
+    background: rgba(0,229,160,0.06);
+    border: 1px solid rgba(0,229,160,0.18);
+    border-radius: 10px; padding: 12px 10px; text-align: center;
+    transition: background 0.2s;
+  }
+  .target-card:hover { background: rgba(0,229,160,0.12); }
+  .target-label { font-size: 0.7rem; color: var(--muted2); font-weight: 600; letter-spacing: 0.5px; }
+  .target-amount { font-family: var(--mono); font-size: 1.2rem; font-weight: 500; color: var(--accent); margin: 4px 0 2px; }
+  .target-pts { font-size: 0.72rem; color: var(--muted); font-family: var(--mono); }
+
+  /* INFO GRID */
+  .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .info-card {
+    background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 10px; padding: 14px 16px;
+  }
+  .info-label { font-size: 0.7rem; color: var(--muted2); font-weight: 600; letter-spacing: 0.5px; text-transform: uppercase; }
+  .info-value { font-family: var(--mono); font-size: 1.2rem; margin-top: 4px; }
+  .info-value.danger { color: var(--danger); }
+
+  /* CONTRACT SPECS */
+  .spec-table { width: 100%; border-collapse: collapse; font-size: 0.82rem; }
+  .spec-table th {
+    font-size: 0.68rem; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 0.6px; color: var(--muted); text-align: left;
+    padding: 8px 10px; border-bottom: 1px solid var(--border);
+  }
+  .spec-table td { padding: 9px 10px; border-bottom: 1px solid rgba(42,47,62,0.5); color: var(--muted2); }
+  .spec-table td:first-child { color: var(--text); font-weight: 600; }
+  .spec-table td:last-child { font-family: var(--mono); color: var(--accent2); text-align: right; }
+  .spec-table tr:last-child td { border-bottom: none; }
+
+  /* RISK PANEL */
+  .risk-scenarios { display: grid; gap: 8px; }
+  .scenario-row {
+    display: grid; grid-template-columns: 1fr 1fr 1fr 1fr;
+    gap: 8px; align-items: center;
+    background: var(--surface2); border-radius: 9px; padding: 12px 14px;
+    font-family: var(--mono); font-size: 0.82rem;
+  }
+  .scenario-row.header {
+    background: none; padding: 4px 14px;
+    font-size: 0.68rem; font-weight: 700; color: var(--muted);
+    text-transform: uppercase; letter-spacing: 0.5px;
+  }
+  .scenario-row .pnl-pos { color: var(--accent); }
+  .scenario-row .pnl-neg { color: var(--danger); }
+
+  /* PROGRESS BAR */
+  .progress-bar {
+    height: 4px; background: var(--surface3);
+    border-radius: 4px; margin-top: 8px; overflow: hidden;
+  }
+  .progress-fill {
+    height: 100%; border-radius: 4px;
+    background: linear-gradient(90deg, var(--accent), var(--accent2));
+    transition: width 0.4s ease;
+  }
+
+  /* RESPONSIVE */
+  @media (max-width: 480px) {
+    .two-col { grid-template-columns: 1fr; }
+    .targets-grid { grid-template-columns: repeat(3, 1fr); }
+    .scenario-row { grid-template-columns: 1fr 1fr; }
+    .scenario-row.header { display: none; }
+  }
+
+  /* ANIMATIONS */
+  .result-value, .target-amount, .info-value {
+    transition: opacity 0.15s;
+  }
+  .updating { opacity: 0.4; }
+
+  /* TOOLTIP */
+  .tooltip-icon {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 16px; height: 16px; border-radius: 50%;
+    background: var(--surface3); border: 1px solid var(--border);
+    font-size: 10px; color: var(--muted); cursor: help; margin-left: 4px;
+  }
+
+  /* CONTRACT TAG */
+  .contract-tag {
+    display: inline-block; padding: 2px 8px;
+    background: rgba(0,184,217,0.12); border: 1px solid rgba(0,184,217,0.25);
+    border-radius: 4px; font-family: var(--mono); font-size: 0.68rem;
+    color: var(--accent2); margin-left: 6px;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <div class="logo-icon">📊</div>
+    Futures Calc
+  </div>
+  <div class="session-badge">
+    <span id="live-time">00:00:00</span>
+    <span><span class="session-dot dot-asian"></span>Asian</span>
+    <span><span class="session-dot dot-london"></span>London</span>
+    <span><span class="session-dot dot-ny"></span>NY</span>
+  </div>
+</header>
+
+<div class="tabs">
+  <button class="tab active" onclick="switchTab('position', this)">Position</button>
+  <button class="tab" onclick="switchTab('specs', this)">Specs</button>
+  <button class="tab" onclick="switchTab('risk', this)">Risk</button>
+</div>
+
+<main>
+
+  <!-- POSITION PANEL -->
+  <div class="panel active" id="panel-position">
+
+    <div class="card">
+      <div class="two-col">
+        <div>
+          <div class="field-label">Contract</div>
+          <select id="contract" onchange="calculate()">
+            <optgroup label="Nasdaq">
+              <option value="NQ">NQ E-mini (Nasdaq 100)</option>
+              <option value="MNQ">MNQ Micro (Nasdaq 100)</option>
+            </optgroup>
+            <optgroup label="S&P 500">
+              <option value="ES">ES E-mini (S&P 500)</option>
+              <option value="MES">MES Micro (S&P 500)</option>
+            </optgroup>
+            <optgroup label="Gold">
+              <option value="GC">GC Gold</option>
+              <option value="MGC">MGC Micro Gold</option>
+            </optgroup>
+            <optgroup label="Dow Jones">
+              <option value="YM">YM E-mini (Dow)</option>
+              <option value="MYM">MYM Micro (Dow)</option>
+            </optgroup>
+            <optgroup label="Russell 2000">
+              <option value="RTY">RTY E-mini (Russell)</option>
+              <option value="M2K">M2K Micro (Russell)</option>
+            </optgroup>
+            <optgroup label="Crude Oil">
+              <option value="CL">CL Crude Oil</option>
+              <option value="MCL">MCL Micro Crude Oil</option>
+            </optgroup>
+          </select>
+        </div>
+        <div>
+          <div class="field-label">Account Size</div>
+          <div class="input-wrap">
+            <span class="input-prefix">$</span>
+            <input type="number" id="account" value="10000" oninput="calculate()">
+          </div>
+          <div class="quick-btns">
+            <button class="qbtn" onclick="setAccount(5000)">5K</button>
+            <button class="qbtn" onclick="setAccount(10000)">10K</button>
+            <button class="qbtn" onclick="setAccount(25000)">25K</button>
+            <button class="qbtn" onclick="setAccount(50000)">50K</button>
+            <button class="qbtn" onclick="setAccount(100000)">100K</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="sl-risk-grid">
+        <div>
+          <div class="field-label">Stop Loss <span class="tooltip-icon" title="Distance in points from entry to stop">?</span></div>
+          <div class="input-wrap">
+            <input type="number" id="stopLoss" value="10" oninput="calculate()">
+            <span class="input-suffix">pts</span>
+          </div>
+          <div class="quick-btns">
+            <button class="qbtn" onclick="setSL(5)">5</button>
+            <button class="qbtn" onclick="setSL(10)">10</button>
+            <button class="qbtn" onclick="setSL(15)">15</button>
+            <button class="qbtn" onclick="setSL(20)">20</button>
+            <button class="qbtn" onclick="setSL(30)">30</button>
+            <button class="qbtn" onclick="setSL(50)">50</button>
+          </div>
+        </div>
+        <div>
+          <div class="field-label">Risk <span class="tooltip-icon" title="% of account you are willing to risk">?</span></div>
+          <div class="input-wrap">
+            <input type="number" id="riskPct" value="1" step="0.5" oninput="calculate()">
+            <span class="input-suffix">%</span>
+          </div>
+          <div class="quick-btns">
+            <button class="qbtn" onclick="setRisk(0.5)">0.5%</button>
+            <button class="qbtn" onclick="setRisk(1)">1%</button>
+            <button class="qbtn" onclick="setRisk(1.5)">1.5%</button>
+            <button class="qbtn" onclick="setRisk(2)">2%</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- RESULTS -->
+      <div class="results-grid" style="margin-top:16px;">
+        <div class="result-card black-border">
+          <div class="result-label">Contracts</div>
+          <div class="result-value" id="res-contracts">0</div>
+          <div class="result-sub" id="res-contract-name">Nasdaq 100 E-mini</div>
+        </div>
+        <div class="result-card red-border">
+          <div class="result-label">Risk Amount</div>
+          <div class="result-value" id="res-risk-amount">$100</div>
+          <div class="result-sub" id="res-per-contract">$200/contract</div>
+        </div>
+        <div class="result-card blue-border">
+          <div class="result-label">Margin Required</div>
+          <div class="result-value" id="res-margin">$0</div>
+          <div class="result-sub" id="res-margin-pct">0.0% of account</div>
+        </div>
+        <div class="result-card green-bg">
+          <div class="result-label">Risk Level</div>
+          <div class="result-value risk-level-text" id="res-risk-level">Conservative</div>
+          <div class="result-sub">⚠ Margin usage</div>
+        </div>
+      </div>
+
+      <div class="buying-power-row">
+        <span>Buying Power Usage</span>
+        <span id="res-bp-pct">0.0%</span>
+      </div>
+      <div class="progress-bar"><div class="progress-fill" id="bp-bar" style="width:0%"></div></div>
+    </div>
+
+    <!-- PROFIT TARGETS -->
+    <div class="card">
+      <div class="section-title"><span class="icon">🎯</span> Profit Targets (Risk:Reward)</div>
+      <div class="targets-grid">
+        <div class="target-card">
+          <div class="target-label">1:1 Target</div>
+          <div class="target-amount" id="t-11">$100</div>
+          <div class="target-pts" id="tp-11">10 points</div>
+        </div>
+        <div class="target-card">
+          <div class="target-label">1:2 Target</div>
+          <div class="target-amount" id="t-12">$200</div>
+          <div class="target-pts" id="tp-12">20 points</div>
+        </div>
+        <div class="target-card">
+          <div class="target-label">1:3 Target</div>
+          <div class="target-amount" id="t-13">$300</div>
+          <div class="target-pts" id="tp-13">30 points</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- INFO CARDS -->
+    <div class="info-grid">
+      <div class="info-card">
+        <div class="info-label">Cost Per Point</div>
+        <div class="info-value" id="res-cpp">$0.00</div>
+      </div>
+      <div class="info-card">
+        <div class="info-label">Tick Value</div>
+        <div class="info-value" id="res-tick">$5</div>
+      </div>
+      <div class="info-card">
+        <div class="info-label">Remaining Balance</div>
+        <div class="info-value" id="res-balance">$10,000</div>
+      </div>
+      <div class="info-card">
+        <div class="info-label">Max Drawdown</div>
+        <div class="info-value danger" id="res-maxdd">$100</div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- SPECS PANEL -->
+  <div class="panel" id="panel-specs">
+    <div class="card">
+      <div class="section-title"><span class="icon">📋</span> Contract Specifications</div>
+      <table class="spec-table">
+        <thead>
+          <tr>
+            <th>Contract</th>
+            <th>Full Name</th>
+            <th>Tick / Point Value</th>
+          </tr>
+        </thead>
+        <tbody id="specs-body"></tbody>
+      </table>
+    </div>
+    <div class="card">
+      <div class="section-title"><span class="icon">⚡</span> Selected Contract</div>
+      <table class="spec-table" id="selected-spec-table"></table>
+    </div>
+  </div>
+
+  <!-- RISK PANEL -->
+  <div class="panel" id="panel-risk">
+    <div class="card">
+      <div class="section-title"><span class="icon">📉</span> P&L Scenarios — <span id="risk-contract-label" style="color:var(--accent2)">NQ</span></div>
+      <div class="risk-scenarios">
+        <div class="scenario-row header">
+          <span>Contracts</span><span>Points</span><span>Profit</span><span>Loss</span>
+        </div>
+        <div id="scenarios-body"></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="section-title"><span class="icon">📊</span> Risk % Guide</div>
+      <div class="risk-scenarios">
+        <div class="scenario-row header">
+          <span>Risk %</span><span>Amount</span><span>Contracts</span><span>Level</span>
+        </div>
+        <div id="risk-guide-body"></div>
+      </div>
+    </div>
+  </div>
+
+</main>
+
+<script>
+const CONTRACTS = {
+  NQ:  { name: 'Nasdaq 100 E-mini',   pointValue: 20,   tickSize: 0.25, tickValue: 5,   margin: 18700, micro: false },
+  MNQ: { name: 'Nasdaq 100 Micro',    pointValue: 2,    tickSize: 0.25, tickValue: 0.5, margin: 1870,  micro: true  },
+  ES:  { name: 'S&P 500 E-mini',      pointValue: 50,   tickSize: 0.25, tickValue: 12.5,margin: 14300, micro: false },
+  MES: { name: 'S&P 500 Micro',       pointValue: 5,    tickSize: 0.25, tickValue: 1.25,margin: 1430,  micro: true  },
+  GC:  { name: 'Gold Futures',        pointValue: 100,  tickSize: 0.10, tickValue: 10,  margin: 9900,  micro: false },
+  MGC: { name: 'Micro Gold',          pointValue: 10,   tickSize: 0.10, tickValue: 1,   margin: 990,   micro: true  },
+  YM:  { name: 'Dow Jones E-mini',    pointValue: 5,    tickSize: 1,    tickValue: 5,   margin: 11000, micro: false },
+  MYM: { name: 'Dow Jones Micro',     pointValue: 0.5,  tickSize: 1,    tickValue: 0.5, margin: 1100,  micro: true  },
+  RTY: { name: 'Russell 2000 E-mini', pointValue: 50,   tickSize: 0.10, tickValue: 5,   margin: 7700,  micro: false },
+  M2K: { name: 'Russell 2000 Micro',  pointValue: 5,    tickSize: 0.10, tickValue: 0.5, margin: 770,   micro: true  },
+  CL:  { name: 'Crude Oil',           pointValue: 1000, tickSize: 0.01, tickValue: 10,  margin: 6600,  micro: false },
+  MCL: { name: 'Micro Crude Oil',     pointValue: 100,  tickSize: 0.01, tickValue: 1,   margin: 660,   micro: true  },
+};
+
+function fmt(n, decimals=2) {
+  return '$' + n.toLocaleString('en-US', { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
+}
+
+function calculate() {
+  const sym = document.getElementById('contract').value;
+  const account = parseFloat(document.getElementById('account').value) || 0;
+  const sl = parseFloat(document.getElementById('stopLoss').value) || 1;
+  const riskPct = parseFloat(document.getElementById('riskPct').value) || 1;
+
+  const c = CONTRACTS[sym];
+  const riskAmount = account * (riskPct / 100);
+  const riskPerContract = sl * c.pointValue;
+  const contracts = riskPerContract > 0 ? Math.floor(riskAmount / riskPerContract) : 0;
+  const actualRisk = contracts * riskPerContract;
+  const marginRequired = contracts * c.margin;
+  const marginPct = account > 0 ? (marginRequired / account * 100) : 0;
+  const bpPct = marginPct;
+
+  let riskLevel, riskColor;
+  if (bpPct <= 25) { riskLevel = 'Conservative'; riskColor = 'var(--accent)'; }
+  else if (bpPct <= 50) { riskLevel = 'Moderate'; riskColor = 'var(--warn)'; }
+  else if (bpPct <= 75) { riskLevel = 'Aggressive'; riskColor = 'var(--warn)'; }
+  else { riskLevel = 'High Risk'; riskColor = 'var(--danger)'; }
+
+  document.getElementById('res-contracts').textContent = contracts;
+  document.getElementById('res-contract-name').textContent = c.name;
+  document.getElementById('res-risk-amount').textContent = fmt(riskAmount, 0);
+  document.getElementById('res-per-contract').textContent = fmt(riskPerContract, 2) + '/contract';
+  document.getElementById('res-margin').textContent = fmt(marginRequired, 0);
+  document.getElementById('res-margin-pct').textContent = marginPct.toFixed(1) + '% of account';
+  document.getElementById('res-risk-level').textContent = riskLevel;
+  document.getElementById('res-risk-level').style.color = riskColor;
+  document.getElementById('res-bp-pct').textContent = bpPct.toFixed(1) + '%';
+  document.getElementById('bp-bar').style.width = Math.min(bpPct, 100) + '%';
+
+  // Targets
+  const t1 = contracts * sl * c.pointValue;
+  document.getElementById('t-11').textContent = fmt(t1, 0);
+  document.getElementById('t-12').textContent = fmt(t1 * 2, 0);
+  document.getElementById('t-13').textContent = fmt(t1 * 3, 0);
+  document.getElementById('tp-11').textContent = sl + ' points';
+  document.getElementById('tp-12').textContent = (sl * 2) + ' points';
+  document.getElementById('tp-13').textContent = (sl * 3) + ' points';
+
+  // Info
+  const cpp = contracts * c.pointValue;
+  document.getElementById('res-cpp').textContent = fmt(cpp, 2);
+  document.getElementById('res-tick').textContent = fmt(c.tickValue * contracts || c.tickValue, 2);
+  document.getElementById('res-balance').textContent = fmt(account - marginRequired, 0);
+  document.getElementById('res-maxdd').textContent = fmt(actualRisk, 0);
+
+  // Update risk panel
+  updateRiskPanel(sym, account, sl, c);
+}
+
+function updateRiskPanel(sym, account, sl, c) {
+  document.getElementById('risk-contract-label').textContent = sym;
+  const sb = document.getElementById('scenarios-body');
+  sb.innerHTML = '';
+  [1, 2, 3, 5, 10].forEach(n => {
+    const profit = n * sl * c.pointValue;
+    const loss = n * sl * c.pointValue;
+    const row = document.createElement('div');
+    row.className = 'scenario-row';
+    row.innerHTML = `
+      <span>${n} contract${n>1?'s':''}</span>
+      <span>${sl} pts</span>
+      <span class="pnl-pos">+${fmt(profit,0)}</span>
+      <span class="pnl-neg">-${fmt(loss,0)}</span>`;
+    sb.appendChild(row);
+  });
+
+  const rgb = document.getElementById('risk-guide-body');
+  rgb.innerHTML = '';
+  [0.5, 1, 1.5, 2, 3].forEach(pct => {
+    const rAmt = account * (pct / 100);
+    const rpc = sl * c.pointValue;
+    const cnt = rpc > 0 ? Math.floor(rAmt / rpc) : 0;
+    let lvl = pct <= 1 ? '<span style="color:var(--accent)">Conservative</span>'
+            : pct <= 2 ? '<span style="color:var(--warn)">Moderate</span>'
+            : '<span style="color:var(--danger)">Aggressive</span>';
+    const row = document.createElement('div');
+    row.className = 'scenario-row';
+    row.innerHTML = `<span>${pct}%</span><span>${fmt(rAmt,0)}</span><span>${cnt}</span><span>${lvl}</span>`;
+    rgb.appendChild(row);
+  });
+}
+
+function buildSpecs() {
+  const sb = document.getElementById('specs-body');
+  sb.innerHTML = '';
+  Object.entries(CONTRACTS).forEach(([sym, c]) => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td>${sym}${c.micro ? '<span class="contract-tag">MICRO</span>':''}</td><td>${c.name}</td><td>${fmt(c.pointValue,2)}/pt · ${fmt(c.tickValue,2)}/tick</td>`;
+    sb.appendChild(tr);
+  });
+}
+
+function updateSelectedSpec() {
+  const sym = document.getElementById('contract').value;
+  const c = CONTRACTS[sym];
+  const t = document.getElementById('selected-spec-table');
+  t.innerHTML = `
+    <thead><tr><th>Field</th><th>Value</th></tr></thead>
+    <tbody>
+      <tr><td>Symbol</td><td>${sym}</td></tr>
+      <tr><td>Full Name</td><td>${c.name}</td></tr>
+      <tr><td>Point Value</td><td>${fmt(c.pointValue,2)}</td></tr>
+      <tr><td>Tick Size</td><td>${c.tickSize}</td></tr>
+      <tr><td>Tick Value</td><td>${fmt(c.tickValue,2)}</td></tr>
+      <tr><td>Day Margin</td><td>${fmt(c.margin,0)}</td></tr>
+      <tr><td>Type</td><td>${c.micro ? 'Micro Contract' : 'Standard E-mini'}</td></tr>
+    </tbody>`;
+}
+
+document.getElementById('contract').addEventListener('change', () => {
+  calculate();
+  updateSelectedSpec();
+});
+
+function setAccount(v) { document.getElementById('account').value = v; calculate(); }
+function setSL(v) { document.getElementById('stopLoss').value = v; calculate(); }
+function setRisk(v) { document.getElementById('riskPct').value = v; calculate(); }
+
+function switchTab(name, el) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById('panel-' + name).classList.add('active');
+  if (name === 'specs') updateSelectedSpec();
+}
+
+// Live clock + session indicator
+function updateClock() {
+  const now = new Date();
+  document.getElementById('live-time').textContent = now.toTimeString().slice(0,8);
+  // UTC hour for session indication
+  const utc = now.getUTCHours();
+  const asianDot = document.querySelector('.dot-asian');
+  const londonDot = document.querySelector('.dot-london');
+  const nyDot = document.querySelector('.dot-ny');
+  asianDot.style.background = (utc >= 0 && utc < 8) ? 'var(--accent)' : 'var(--muted)';
+  asianDot.style.boxShadow = (utc >= 0 && utc < 8) ? '0 0 6px var(--accent)' : 'none';
+  londonDot.style.background = (utc >= 7 && utc < 16) ? 'var(--accent2)' : 'var(--muted)';
+  londonDot.style.boxShadow = (utc >= 7 && utc < 16) ? '0 0 6px var(--accent2)' : 'none';
+  nyDot.style.background = (utc >= 13 && utc < 22) ? 'var(--warn)' : 'var(--muted)';
+  nyDot.style.boxShadow = (utc >= 13 && utc < 22) ? '0 0 6px var(--warn)' : 'none';
+}
+setInterval(updateClock, 1000);
+updateClock();
+buildSpecs();
+calculate();
+</script>
+</body>
+</html>
